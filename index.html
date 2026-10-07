@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>汉语听力模拟测试系统 - Level J Chinese Listening</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@600;900&display=swap');
+    body {
+      font-family: 'Noto Sans SC', system-ui, -apple-system, sans-serif;
+    }
+    .pinyin-font {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    /* Pulse animations for audio playing */
+    @keyframes soundwave {
+      0%, 100% { height: 6px; }
+      50% { height: 22px; }
+    }
+    .wave-bar {
+      animation: soundwave 1.1s ease-in-out infinite;
+    }
+    .wave-bar:nth-child(2) { animation-delay: 0.2s; }
+    .wave-bar:nth-child(3) { animation-delay: 0.4s; }
+    .wave-bar:nth-child(4) { animation-delay: 0.1s; }
+    .wave-bar:nth-child(5) { animation-delay: 0.3s; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col antialiased selection:bg-rose-100 selection:text-rose-700">
+
+  <!-- Header with Info & Global Toggles -->
+  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm">
+    <div class="max-w-6xl mx-auto px-4 py-3 sm:px-6 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-rose-500 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-rose-200">
+          <i class="fa-solid fa-headphones-simple text-lg"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold text-slate-900 leading-tight">SABIS® 汉语听力测试</h1>
+          <p class="text-xs text-slate-500 font-medium">Level J Chinese • 2627-CHJN102-UAE (V1)</p>
+        </div>
+      </div>
+
+      <!-- Display Mode Toggles (Pinyin, Hanzi, English) -->
+      <div class="flex flex-wrap items-center gap-2 bg-slate-100 p-1.5 rounded-xl border border-slate-200 text-xs sm:text-sm font-medium">
+        <span class="text-slate-400 px-1 hidden sm:inline"><i class="fa-solid fa-eye mr-1"></i>展示选项:</span>
+        <button id="toggle-pinyin" onclick="toggleGlobalVisibility('pinyin')" class="px-3 py-1.5 rounded-lg bg-white text-rose-600 shadow-sm border border-slate-200 hover:bg-slate-50 transition-all flex items-center gap-1.5 active:scale-95">
+          <i class="fa-solid fa-spell-check text-rose-500"></i>
+          <span>拼音 (Pinyin)</span>
+        </button>
+        <button id="toggle-hanzi" onclick="toggleGlobalVisibility('hanzi')" class="px-3 py-1.5 rounded-lg bg-white text-emerald-600 shadow-sm border border-slate-200 hover:bg-slate-50 transition-all flex items-center gap-1.5 active:scale-95">
+          <i class="fa-solid fa-font text-emerald-500"></i>
+          <span>汉字 (Hanzi)</span>
+        </button>
+        <button id="toggle-english" onclick="toggleGlobalVisibility('english')" class="px-3 py-1.5 rounded-lg bg-white text-blue-600 shadow-sm border border-slate-200 hover:bg-slate-50 transition-all flex items-center gap-1.5 active:scale-95">
+          <i class="fa-solid fa-language text-blue-500"></i>
+          <span>英文 (English)</span>
+        </button>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="flex items-center gap-2">
+        <button onclick="resetAllAnswers()" class="px-3 py-1.5 text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors border border-slate-200" title="清空选择并重置">
+          <i class="fa-solid fa-rotate-right mr-1"></i>重置
+        </button>
+        <button onclick="submitExam()" class="px-4 py-1.5 text-xs sm:text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 active:bg-rose-800 rounded-lg shadow-sm shadow-rose-200 transition-all flex items-center gap-1.5">
+          <i class="fa-solid fa-check-double"></i>
+          <span>交卷评分</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto w-full px-4 py-6 sm:px-6 flex-grow space-y-6">
+
+    <!-- Instructions & Audio Settings Card -->
+    <div class="bg-gradient-to-br from-white to-rose-50/40 rounded-2xl border border-rose-100 p-5 shadow-sm">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div class="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-rose-100 text-rose-800 mb-2">
+            <span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span> 标准普通话原声朗读 (考试规则播放两遍)
+          </div>
+          <h2 class="text-xl font-bold text-slate-900">听力作答说明 (Listening Instructions)</h2>
+          <p class="text-sm text-slate-600 mt-1 leading-relaxed">
+            本试卷共有 10 道试题（第 1–9 题为情境对话理解选择题，每题 1.0 分；第 10 题为完整句子口语应答题，1.0 分，满分 10.0 分）。点击“<strong>播放录音</strong>”即可按照考试规范完整听两遍。顶部可随时切换<strong>拼音</strong>、<strong>汉字</strong>与<strong>英文释义</strong>。
+          </p>
+        </div>
+
+        <!-- Audio controls panel -->
+        <div class="flex flex-wrap items-center gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-sm shrink-0">
+          <div class="text-xs text-slate-500 font-medium">语速调节:</div>
+          <button onclick="setPlaybackSpeed(0.8)" id="speed-08" class="px-2.5 py-1 text-xs rounded-md bg-slate-100 hover:bg-slate-200 font-medium transition-colors">0.8x (慢速)</button>
+          <button onclick="setPlaybackSpeed(1.0)" id="speed-10" class="px-2.5 py-1 text-xs rounded-md bg-rose-600 text-white font-medium shadow-sm transition-colors">1.0x (标准)</button>
+          <button onclick="setPlaybackSpeed(1.2)" id="speed-12" class="px-2.5 py-1 text-xs rounded-md bg-slate-100 hover:bg-slate-200 font-medium transition-colors">1.2x (进阶)</button>
+        </div>
+      </div>
+
+      <!-- Quick statistics bar -->
+      <div id="score-summary-bar" class="hidden mt-4 pt-4 border-t border-rose-100 flex flex-wrap items-center justify-between gap-3 text-sm">
+        <div class="flex items-center gap-4">
+          <span class="font-bold text-slate-700">选择题得分:</span>
+          <span id="final-score" class="text-2xl font-black text-rose-600">0.0 / 9.0</span>
+          <span id="accuracy-rate" class="px-2.5 py-0.5 rounded text-xs font-bold bg-emerald-100 text-emerald-800">正确率: 0%</span>
+        </div>
+        <p class="text-xs text-slate-500">点击各题下方的“听力脚本与解析”可查看同字号完整文本与详细解析。</p>
+      </div>
+    </div>
+
+    <!-- Questions Container -->
+    <div id="exam-questions-list" class="space-y-5"></div>
+
+  </main>
+
+  <!-- Audio Playing Floating Toast -->
+  <div id="audio-toast" class="fixed bottom-6 right-6 z-50 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none">
+    <div class="bg-slate-900/90 backdrop-blur-md text-white px-4 py-3 rounded-2xl shadow-xl flex items-center gap-3 border border-slate-700/60">
+      <div class="flex items-end gap-1 h-5 w-6">
+        <span class="w-1 bg-rose-400 rounded-full wave-bar"></span>
+        <span class="w-1 bg-amber-400 rounded-full wave-bar"></span>
+        <span class="w-1 bg-emerald-400 rounded-full wave-bar"></span>
+        <span class="w-1 bg-sky-400 rounded-full wave-bar"></span>
+      </div>
+      <div>
+        <p id="audio-toast-title" class="text-xs font-bold text-white">正在朗读听力内容...</p>
+        <p id="audio-toast-sub" class="text-[11px] text-slate-400">标准普通话朗读中</p>
+      </div>
+      <button onclick="stopAudio()" class="pointer-events-auto ml-2 p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white transition-colors" title="停止播放">
+        <i class="fa-solid fa-stop text-xs"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-slate-200 mt-12 py-6 text-center text-xs text-slate-500">
+    <div class="max-w-5xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <p>SABIS® Periodic Exam • Chinese Level J (2627-CHJN102-UAE)</p>
+      <p class="flex items-center gap-1">
+        <i class="fa-solid fa-volume-high text-rose-500"></i> 支持拼音、汉字、英文自由切换 • 解析字体全匹配
+      </p>
+    </div>
+  </footer>
+
+  <script>
+    // Complete Question Database for Level J (2627-CHJN102-UAE)
+    const questionsData = [
+      {
+        id: 1,
+        type: "dialog",
+        instruction: "Listen to the recording and choose the correct answer.",
+        instructionZh: "听录音并选择正确答案。录音将播放两遍。",
+        questionText: "Ta的椅子在哪儿？",
+        questionPinyin: "Tā de yǐzi zài nǎr?",
+        questionEn: "Where is his/her chair?",
+        weight: 1.0,
+        dialogLines: [
+          { role: "A", text: "我的椅子在哪儿？", pinyin: "Wǒ de yǐzi zài nǎr?", en: "Where is my chair?" },
+          { role: "B", text: "我帮你放到房间里了。", pinyin: "Wǒ bāng nǐ fàng dào fángjiān lǐ le.", en: "I helped you put it in the room." },
+          { role: "问题", text: "Ta的椅子在哪儿？", pinyin: "Tā de yǐzi zài nǎr?", en: "Question: Where is his/her chair?" }
+        ],
+        correctAnswer: "B",
+        options: [
+          { key: "A", hanzi: "桌子里。", pinyin: "zhuōzi lǐ.", english: "Inside the desk/table." },
+          { key: "B", hanzi: "房间里。", pinyin: "fángjiān lǐ.", english: "Inside the room." },
+          { key: "C", hanzi: "学校里。", pinyin: "xuéxiào lǐ.", english: "In school." },
+          { key: "D", hanzi: "教室里。", pinyin: "jiàoshì lǐ.", english: "In the classroom." }
+        ],
+        explanation: "听力对话中，B 回答“我帮你放到房间里了”，因此椅子在“房间里”。正确答案选 B。"
+      },
+      {
+        id: 2,
+        type: "dialog",
+        instruction: "Listen to the recording and choose the correct answer.",
+        instructionZh: "听录音并选择正确答案。录音将播放两遍。",
+        questionText: "Ta买了什么颜色的沙发？",
+        questionPinyin: "Tā mǎi le shénme yánsè de shāfā?",
+        questionEn: "What color sofa did he/she buy?",
+        weight: 1.0,
+        dialogLines: [
+          { role: "A", text: "你买了什么颜色的沙发？", pinyin: "Nǐ mǎi le shénme yánsè de shāfā?", en: "What color sofa did you buy?" },
+          { role: "B", text: "我买了红色的沙发。", pinyin: "Wǒ mǎi le hóngsè de shāfā.", en: "I bought a red sofa." },
+          { role: "问题", text: "Ta买了什么颜色的沙发？", pinyin: "Tā mǎi le shénme yánsè de shāfā?", en: "Question: What color sofa did he/she buy?" }
+        ],
+        correctAnswer: "A",
+        options: [
+          { key: "A", hanzi: "红色。", pinyin: "hóngsè.", english: "Red." },
+          { key: "B", hanzi: "白色。", pinyin: "báisè.", english: "White." },
+          { key: "C", hanzi: "黑色。", pinyin: "hēisè.", english: "Black." },
+          { key: "D", hanzi: "蓝色。", pinyin: "lánsè.", english: "Blue." }
+        ],
+        explanation: "对话中 B 明确回答：“我买了红色的沙发”，故购买的沙发颜色为“红色”。正确答案选 A。"
+      },
+      {
+        id: 3,
+        type: "dialog",
+        instruction: "Listen to the conversation and choose the correct answer. You will hear the conversation twice.",
+        instructionZh: "听对话和问题，选出正确的回答。录音将播放两遍。",
+        questionText: "Ta现在住在几楼？",
+        questionPinyin: "Tā xiànzài zhù zài jǐ lóu?",
+        questionEn: "Which floor does he/she live on now?",
+        weight: 1.0,
+        dialogLines: [
+          { role: "A", text: "你住在几楼？", pinyin: "Nǐ zhù zài jǐ lóu?", en: "Which floor do you live on?" },
+          { role: "B", text: "以前我住在十一楼。现在我搬家了，我住在十五楼。", pinyin: "Yǐqián wǒ zhù zài shíyī lóu. Xiànzài wǒ bānjiā le, wǒ zhù zài shíwǔ lóu.", en: "I used to live on the 11th floor. Now I moved, I live on the 15th floor." },
+          { role: "问题", text: "Ta现在住在几楼？", pinyin: "Tā xiànzài zhù zài jǐ lóu?", en: "Question: Which floor does he/she live on now?" }
+        ],
+        correctAnswer: "D",
+        options: [
+          { key: "A", hanzi: "十二楼。", pinyin: "shí'èr lóu.", english: "12th floor." },
+          { key: "B", hanzi: "十三楼。", pinyin: "shísān lóu.", english: "13th floor." },
+          { key: "C", hanzi: "十一楼。", pinyin: "shíyī lóu.", english: "11th floor (former)." },
+          { key: "D", hanzi: "十五楼。", pinyin: "shíwǔ lóu.", english: "15th floor (current)." }
+        ],
+        explanation: "注意审题“现在住在几楼”。B 提到“以前住在十一楼”，但“现在我搬家了，我住在十五楼”，因此当前住在十五楼。正确答案选 D。"
+      },
+      {
+        id: 4,
+        type: "dialog",
+        instruction: "Listen to the conversation and choose the correct answer. You will hear the conversation twice.",
+        instructionZh: "听对话和问题，选出正确的回答。录音将播放两遍。",
+        questionText: "谁还没有刷牙？",
+        questionPinyin: "Shéi hái méiyǒu shuāyá?",
+        questionEn: "Who hasn't brushed their teeth yet?",
+        weight: 1.0,
+        dialogLines: [
+          { role: "A", text: "你刷牙了吗？", pinyin: "Nǐ shuāyá le ma?", en: "Have you brushed your teeth?" },
+          { role: "B", text: "我刷牙了，但是哥哥和弟弟还没有刷牙。", pinyin: "Wǒ shuāyá le, dànshì gēge hé dìdi hái méiyǒu shuāyá.", en: "I brushed, but elder brother and younger brother haven't brushed their teeth yet." },
+          { role: "问题", text: "谁还没有刷牙？", pinyin: "Shéi hái méiyǒu shuāyá?", en: "Question: Who hasn't brushed their teeth yet?" }
+        ],
+        correctAnswer: "C",
+        options: [
+          { key: "A", hanzi: "哥哥和姐姐。", pinyin: "gēge hé jiějie.", english: "Elder brother and elder sister." },
+          { key: "B", hanzi: "哥哥和妹妹。", pinyin: "gēge hé mèimei.", english: "Elder brother and younger sister." },
+          { key: "C", hanzi: "哥哥和弟弟。", pinyin: "gēge hé dìdi.", english: "Elder brother and younger brother." },
+          { key: "D", hanzi: "弟弟和妹妹。", pinyin: "dìdi hé mèimei.", english: "Younger brother and younger sister." }
+        ],
+        explanation: "B 明确回答说“但是哥哥和弟弟还没有刷牙”，故还没刷牙的人是“哥哥和弟弟”。正确答案选 C。"
+      },
+      {
+        id: 5,
+        type: "dialog",
+        instruction: "Listen to the conversation and choose the correct answer. You will hear the conversation twice.",
+        instructionZh: "听对话和问题，选出正确的回答。录音将播放两遍。",
+        questionText: "Ta的毛巾在哪里？",
+        questionPinyin: "Tā de máojīn zài nǎlǐ?",
+        questionEn: "Where is his/her towel?",
+        weight: 1.0,
+        dialogLines: [
+          { role: "A", text: "为什么我的毛巾在书架上？", pinyin: "Wèishénme wǒ de máojīn zài shūjià shang?", en: "Why is my towel on the bookshelf?" },
+          { role: "B", text: "我不知道，我没用过你的毛巾。", pinyin: "Wǒ bù zhīdào, wǒ méi yòng guò nǐ de máojīn.", en: "I don't know, I haven't used your towel." },
+          { role: "问题", text: "Ta的毛巾在哪里？", pinyin: "Tā de máojīn zài nǎlǐ?", en: "Question: Where is his/her towel?" }
+        ],
+        correctAnswer: "D",
+        options: [
+          { key: "A", hanzi: "洗衣机里。", pinyin: "xǐyījī lǐ.", english: "Inside the washing machine." },
+          { key: "B", hanzi: "公园里。", pinyin: "gōngyuán lǐ.", english: "In the park." },
+          { key: "C", hanzi: "家里。", pinyin: "jiā lǐ.", english: "At home." },
+          { key: "D", hanzi: "书架上。", pinyin: "shūjià shang.", english: "On the bookshelf." }
+        ],
+        explanation: "对话一开始 A 问：“为什么我的毛巾在书架上？”，因此毛巾所在的位置是“书架上”。正确答案选 D。"
+      },
+      {
+        id: 6,
+        type: "dialog",
+        instruction: "Listen to the conversation and choose the correct answer. You will hear the conversation twice.",
+        instructionZh: "听对话和问题，选出正确的回答。录音将播放两遍。",
+        questionText: "Ta昨天做了什么？",
+        questionPinyin: "Tā zuótiān zuò le shénme?",
+        questionEn: "What did he/she do yesterday?",
+        weight: 1.0,
+        dialogLines: [
+          { role: "A", text: "你昨天做了什么？", pinyin: "Nǐ zuótiān zuò le shénme?", en: "What did you do yesterday?" },
+          { role: "B", text: "我昨天在家帮爸爸妈妈做了家务。", pinyin: "Wǒ zuótiān zài jiā bāng bàba māma zuò le jiāwù.", en: "I helped my parents do housework at home yesterday." },
+          { role: "问题", text: "Ta昨天做了什么？", pinyin: "Tā zuótiān zuò le shénme?", en: "Question: What did he/she do yesterday?" }
+        ],
+        correctAnswer: "A",
+        options: [
+          { key: "A", hanzi: "家务。", pinyin: "jiāwù.", english: "Housework / chores." },
+          { key: "B", hanzi: "睡觉。", pinyin: "shuìjiào.", english: "Sleeping." },
+          { key: "C", hanzi: "洗澡。", pinyin: "xǐzǎo.", english: "Taking a bath / shower." },
+          { key: "D", hanzi: "毛巾。", pinyin: "máojīn.", english: "Towel." }
+        ],
+        explanation: "B 回答“我昨天在家帮爸爸妈妈做了家务”，故做了“家务”。正确答案选 A。"
+      },
+      {
+        id: 7,
+        type: "dialog",
+        instruction: "Listen to the conversation and choose the correct answer. You will hear the conversation twice.",
+        instructionZh: "听对话和问题，选出正确的回答。录音将播放两遍。",
+        questionText: "Ta想穿什么颜色的衣服？",
+        questionPinyin: "Tā xiǎng chuān shénme yánsè de yīfu?",
+        questionEn: "What color clothes does he/she want to wear?",
+        weight: 1.0,
+        dialogLines: [
+          { role: "A", text: "你想穿什么颜色的衣服？", pinyin: "Nǐ xiǎng chuān shénme yánsè de yīfu?", en: "What color clothes do you want to wear?" },
+          { role: "B", text: "蓝色的，不，还是穿绿色的衣服吧。", pinyin: "Lánsè de, bù, háishì chuān lǜsè de yīfu ba.", en: "Blue... no, I'd better wear green clothes." },
+          { role: "问题", text: "Ta想穿什么颜色的衣服？", pinyin: "Tā xiǎng chuān shénme yánsè de yīfu?", en: "Question: What color clothes does he/she want to wear?" }
+        ],
+        correctAnswer: "C",
+        options: [
+          { key: "A", hanzi: "蓝色。", pinyin: "lánsè.", english: "Blue." },
+          { key: "B", hanzi: "红色。", pinyin: "hóngsè.", english: "Red." },
+          { key: "C", hanzi: "绿色。", pinyin: "lǜsè.", english: "Green." },
+          { key: "D", hanzi: "紫色。", pinyin: "zǐsè.", english: "Purple." }
+        ],
+        explanation: "录音中虽然先提到了蓝色，但随后转折纠正为“不，还是穿绿色的衣服吧”，最终决定穿绿色。正确答案选 C。"
+      },
+      {
+        id: 8,
+        type: "dialog",
+        instruction: "Listen to the conversation and choose the correct answer. You will hear the conversation twice.",
+        instructionZh: "听对话和问题，选出正确的回答。录音将播放两遍。",
+        questionText: "Ta的书在哪儿？",
+        questionPinyin: "Tā de shū zài nǎr?",
+        questionEn: "Where is his/her book?",
+        weight: 1.0,
+        dialogLines: [
+          { role: "A", text: "我的书在哪儿？我记得我放在书包里了。", pinyin: "Wǒ de shū zài nǎr? Wǒ jìde wǒ fàng zài shūbāo lǐ le.", en: "Where is my book? I remember putting it in my schoolbag." },
+          { role: "B", text: "我刚刚帮你放在书架上了。", pinyin: "Wǒ gānggāng bāng nǐ fàng zài shūjià shang le.", en: "I just helped you put it on the bookshelf." },
+          { role: "问题", text: "Ta的书在哪儿？", pinyin: "Tā de shū zài nǎr?", en: "Question: Where is his/her book?" }
+        ],
+        correctAnswer: "B",
+        options: [
+          { key: "A", hanzi: "书包里。", pinyin: "shūbāo lǐ.", english: "In the schoolbag." },
+          { key: "B", hanzi: "书架上。", pinyin: "shūjià shang.", english: "On the bookshelf." },
+          { key: "C", hanzi: "房间里。", pinyin: "fángjiān lǐ.", english: "In the room." },
+          { key: "D", hanzi: "床上。", pinyin: "chuáng shang.", english: "On the bed." }
+        ],
+        explanation: "A 以为在书包里，但 B 纠正说“我刚刚帮你放在书架上了”，所以现在的实际位置是在“书架上”。正确答案选 B。"
+      },
+      {
+        id: 9,
+        type: "dialog",
+        instruction: "Listen to the conversation and choose the correct answer. You will hear the conversation twice.",
+        instructionZh: "听对话和问题，选出正确的回答。录音将播放两遍。",
+        questionText: "Ta们家谁会做饭？",
+        questionPinyin: "Tāmen jiā shéi huì zuòfàn?",
+        questionEn: "Who in their family can cook?",
+        weight: 1.0,
+        dialogLines: [
+          { role: "A", text: "你们家谁会做饭？", pinyin: "Nǐmen jiā shéi huì zuòfàn?", en: "Who can cook in your family?" },
+          { role: "B", text: "我的爸爸，他会做很多中国菜。", pinyin: "Wǒ de bàba, tā huì zuò hěn duō Zhōngguó cài.", en: "My dad, he can cook a lot of Chinese dishes." },
+          { role: "问题", text: "Ta们家谁会做饭？", pinyin: "Tāmen jiā shéi huì zuòfàn?", en: "Question: Who in their family can cook?" }
+        ],
+        correctAnswer: "A",
+        options: [
+          { key: "A", hanzi: "爸爸。", pinyin: "bàba.", english: "Dad." },
+          { key: "B", hanzi: "妈妈。", pinyin: "māma.", english: "Mom." },
+          { key: "C", hanzi: "哥哥。", pinyin: "gēge.", english: "Elder brother." },
+          { key: "D", hanzi: "姐姐。", pinyin: "jiějie.", english: "Elder sister." }
+        ],
+        explanation: "B 回答：“我的爸爸，他会做很多中国菜”，说明会做饭的是“爸爸”。正确答案选 A。"
+      },
+      {
+        id: 10,
+        type: "open_spoken",
+        instruction: "Answer the questions orally in full sentences.",
+        instructionZh: "请用完整的中文句子口头回答以下三个问题。",
+        weight: 1.0,
+        subQuestions: [
+          {
+            num: 1,
+            questionHanzi: "你通常每天几点睡觉？",
+            questionPinyin: "Nǐ tōngcháng měitiān jǐ diǎn shuìjiào?",
+            questionEn: "What time do you usually go to bed every day?",
+            sampleAnswers: [
+              { hanzi: "我通常每天晚上十点睡觉。", pinyin: "Wǒ tōngcháng měitiān wǎnshang shí diǎn shuìjiào.", en: "I usually go to sleep at 10 PM every day." },
+              { hanzi: "我通常九点半睡觉。", pinyin: "Wǒ tōngcháng jiǔ diǎn bàn shuìjiào.", en: "I usually sleep at 9:30." }
+            ]
+          },
+          {
+            num: 2,
+            questionHanzi: "你们家通常谁做饭？",
+            questionPinyin: "Nǐmen jiā tōngcháng shéi zuòfàn?",
+            questionEn: "Who usually cooks in your family?",
+            sampleAnswers: [
+              { hanzi: "我们家通常我妈妈做饭。", pinyin: "Wǒmen jiā tōngcháng wǒ māma zuòfàn.", en: "In our family, my mom usually cooks." },
+              { hanzi: "在我们家，通常是爸爸做饭。", pinyin: "Zài wǒmen jiā, tōngcháng shì bàba zuòfàn.", en: "In our house, it is usually dad who cooks." }
+            ]
+          },
+          {
+            num: 3,
+            questionHanzi: "起床以后，你会做什么？",
+            questionPinyin: "Qǐchuáng yǐhòu, nǐ huì zuò shénme?",
+            questionEn: "What do you do after waking up?",
+            sampleAnswers: [
+              { hanzi: "起床以后，我会先刷牙、洗脸，然后吃早饭。", pinyin: "Qǐchuáng yǐhòu, wǒ huì xiān shuāyá, xǐliǎn, ránhòu chī zǎofàn.", en: "After waking up, I brush my teeth, wash my face, then eat breakfast." },
+              { hanzi: "起床以后，我穿衣服去上学。", pinyin: "Qǐchuáng yǐhòu, wǒ chuān yīfu qù shàngxué.", en: "After getting up, I put on clothes and go to school." }
+            ]
+          }
+        ],
+        explanation: "本题要求使用包含主谓宾的完整句子进行口头回答。注意时间状语的位置（如“每天晚上十点”放在谓语动词“睡觉”前），以及“起床以后……”的时间从句结构。"
+      }
+    ];
+
+    // State management
+    const state = {
+      answers: {},
+      showPinyin: true,
+      showHanzi: true,
+      showEnglish: true,
+      playbackRate: 1.0,
+      activeAudioQuestionId: null,
+      examSubmitted: false
+    };
+
+    let synth = window.speechSynthesis;
+    let currentUtterance = null;
+    let chineseVoice = null;
+
+    function initSpeechEngine() {
+      if (!('speechSynthesis' in window)) {
+        console.warn("Speech synthesis not supported in this browser.");
+        return;
+      }
+      
+      const updateVoices = () => {
+        const voices = synth.getVoices();
+        chineseVoice = voices.find(v => v.lang === 'zh-CN' && (v.name.includes('Xiaoxiao') || v.name.includes('Yunxi') || v.name.includes('Natural') || v.name.includes('Google')))
+                     || voices.find(v => v.lang === 'zh-CN')
+                     || voices.find(v => v.lang.startsWith('zh'))
+                     || null;
+      };
+
+      updateVoices();
+      if (speechSynthesis.onvoiceschanged !== undefined) {
+        speechSynthesis.onvoiceschanged = updateVoices;
+      }
+    }
+
+    // Play exam chime sound using Web Audio API
+    function playChime() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+        osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.15); // A5
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.5);
+      } catch (e) {
+        // AudioContext fallback
+      }
+    }
+
+    function playQuestionAudio(qId, repeatCount = 2) {
+      if (!('speechSynthesis' in window)) {
+        return;
+      }
+
+      stopAudio();
+      const q = questionsData.find(item => item.id === qId);
+      if (!q) return;
+
+      playChime();
+      state.activeAudioQuestionId = qId;
+      updatePlayButtonUI(qId, true);
+      showAudioToast(`第 ${q.id} 题录音播放中`, `按考试标准播放 ${repeatCount} 遍`);
+
+      let textToRead = "";
+      if (q.type === 'dialog') {
+        textToRead = q.dialogLines.map(line => `${line.role === '问题' ? '问题：' : ''}${line.text}`).join(" ");
+      } else if (q.type === 'open_spoken') {
+        textToRead = q.subQuestions.map(sq => `${sq.num}. ${sq.questionHanzi}`).join(" ");
+      }
+
+      let currentPlay = 1;
+
+      function speakOnce() {
+        const utter = new SpeechSynthesisUtterance(textToRead);
+        utter.lang = 'zh-CN';
+        utter.rate = state.playbackRate;
+        if (chineseVoice) {
+          utter.voice = chineseVoice;
+        }
+
+        utter.onend = () => {
+          if (currentPlay < repeatCount && state.activeAudioQuestionId === qId) {
+            currentPlay++;
+            showAudioToast(`第 ${q.id} 题录音播放中`, `第 ${currentPlay} / ${repeatCount} 遍 (间隔暂停中...)`);
+            setTimeout(() => {
+              if (state.activeAudioQuestionId === qId) {
+                speakOnce();
+              }
+            }, 1200);
+          } else {
+            finishPlayback(qId);
+          }
+        };
+
+        utter.onerror = () => {
+          finishPlayback(qId);
+        };
+
+        currentUtterance = utter;
+        synth.speak(utter);
+      }
+
+      setTimeout(speakOnce, 250);
+    }
+
+    function speakText(text, label = "普通话朗读") {
+      stopAudio();
+      showAudioToast(label, text);
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = 'zh-CN';
+      utter.rate = state.playbackRate;
+      if (chineseVoice) {
+        utter.voice = chineseVoice;
+      }
+      utter.onend = () => {
+        hideAudioToast();
+      };
+      utter.onerror = () => {
+        hideAudioToast();
+      };
+      currentUtterance = utter;
+      synth.speak(utter);
+    }
+
+    function stopAudio() {
+      if (synth) {
+        synth.cancel();
+      }
+      if (state.activeAudioQuestionId !== null) {
+        updatePlayButtonUI(state.activeAudioQuestionId, false);
+        state.activeAudioQuestionId = null;
+      }
+      hideAudioToast();
+    }
+
+    function finishPlayback(qId) {
+      updatePlayButtonUI(qId, false);
+      state.activeAudioQuestionId = null;
+      hideAudioToast();
+    }
+
+    function updatePlayButtonUI(qId, isPlaying) {
+      const btn = document.getElementById(`btn-play-${qId}`);
+      if (!btn) return;
+      if (isPlaying) {
+        btn.innerHTML = `<i class="fa-solid fa-square text-rose-500 animate-pulse"></i> <span>停止播放</span>`;
+        btn.classList.add('border-rose-400', 'bg-rose-50');
+      } else {
+        btn.innerHTML = `<i class="fa-solid fa-play text-rose-600"></i> <span>播放录音 (听两遍)</span>`;
+        btn.classList.remove('border-rose-400', 'bg-rose-50');
+      }
+    }
+
+    function showAudioToast(title, sub) {
+      const toast = document.getElementById('audio-toast');
+      document.getElementById('audio-toast-title').textContent = title;
+      document.getElementById('audio-toast-sub').textContent = sub;
+      toast.classList.remove('translate-y-24', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+    }
+
+    function hideAudioToast() {
+      const toast = document.getElementById('audio-toast');
+      toast.classList.add('translate-y-24', 'opacity-0');
+      toast.classList.remove('translate-y-0', 'opacity-100');
+    }
+
+    function setPlaybackSpeed(rate) {
+      state.playbackRate = rate;
+      ['08', '10', '12'].forEach(id => {
+        const btn = document.getElementById(`speed-${id}`);
+        if (id === '08' && rate === 0.8) {
+          btn.className = "px-2.5 py-1 text-xs rounded-md bg-rose-600 text-white font-medium shadow-sm transition-colors";
+        } else if (id === '10' && rate === 1.0) {
+          btn.className = "px-2.5 py-1 text-xs rounded-md bg-rose-600 text-white font-medium shadow-sm transition-colors";
+        } else if (id === '12' && rate === 1.2) {
+          btn.className = "px-2.5 py-1 text-xs rounded-md bg-rose-600 text-white font-medium shadow-sm transition-colors";
+        } else {
+          btn.className = "px-2.5 py-1 text-xs rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium transition-colors";
+        }
+      });
+    }
+
+    function selectOption(qId, key) {
+      state.answers[qId] = key;
+      renderAllQuestions();
+    }
+
+    function resetAllAnswers() {
+      state.answers = {};
+      state.examSubmitted = false;
+      document.getElementById('score-summary-bar').classList.add('hidden');
+      stopAudio();
+      renderAllQuestions();
+    }
+
+    function submitExam() {
+      state.examSubmitted = true;
+      let totalQuestions = 9; // Q1 to Q9 are multiple-choice
+      let correctCount = 0;
+
+      for (let i = 1; i <= 9; i++) {
+        if (state.answers[i] === questionsData[i - 1].correctAnswer) {
+          correctCount++;
+        }
+      }
+
+      const totalScore = (correctCount * 1.0).toFixed(1);
+      const accuracy = Math.round((correctCount / totalQuestions) * 100);
+
+      const summaryBar = document.getElementById('score-summary-bar');
+      const scoreElem = document.getElementById('final-score');
+      const accuracyElem = document.getElementById('accuracy-rate');
+
+      summaryBar.classList.remove('hidden');
+      scoreElem.textContent = `${totalScore} / 9.0 分`;
+      accuracyElem.textContent = `选择题正确率: ${accuracy}% (${correctCount}/9 题正确)`;
+      accuracyElem.className = accuracy >= 80 
+        ? "px-2.5 py-0.5 rounded text-xs font-bold bg-emerald-100 text-emerald-800" 
+        : accuracy >= 60 
+          ? "px-2.5 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-800"
+          : "px-2.5 py-0.5 rounded text-xs font-bold bg-rose-100 text-rose-800";
+
+      renderAllQuestions();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function toggleGlobalVisibility(type) {
+      if (type === 'pinyin') state.showPinyin = !state.showPinyin;
+      if (type === 'hanzi') state.showHanzi = !state.showHanzi;
+      if (type === 'english') state.showEnglish = !state.showEnglish;
+      updateToggleButtons();
+      renderAllQuestions();
+    }
+
+    function updateToggleButtons() {
+      const pinyinBtn = document.getElementById('toggle-pinyin');
+      const hanziBtn = document.getElementById('toggle-hanzi');
+      const englishBtn = document.getElementById('toggle-english');
+
+      pinyinBtn.className = state.showPinyin 
+        ? "px-3 py-1.5 rounded-lg bg-rose-50 text-rose-700 shadow-sm border border-rose-300 font-medium flex items-center gap-1.5"
+        : "px-3 py-1.5 rounded-lg bg-white text-slate-400 border border-slate-200 font-normal hover:bg-slate-50 flex items-center gap-1.5";
+
+      hanziBtn.className = state.showHanzi 
+        ? "px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-300 font-medium flex items-center gap-1.5"
+        : "px-3 py-1.5 rounded-lg bg-white text-slate-400 border border-slate-200 font-normal hover:bg-slate-50 flex items-center gap-1.5";
+
+      englishBtn.className = state.showEnglish 
+        ? "px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 shadow-sm border border-blue-300 font-medium flex items-center gap-1.5"
+        : "px-3 py-1.5 rounded-lg bg-white text-slate-400 border border-slate-200 font-normal hover:bg-slate-50 flex items-center gap-1.5";
+    }
+
+    function toggleDetails(elementId) {
+      const el = document.getElementById(elementId);
+      if (el) {
+        el.classList.toggle('hidden');
+      }
+    }
+
+    function renderAllQuestions() {
+      const container = document.getElementById('exam-questions-list');
+      container.innerHTML = questionsData.map(q => {
+        if (q.type === 'dialog') {
+          return renderDialogQuestion(q);
+        } else {
+          return renderOpenSpokenQuestion(q);
+        }
+      }).join('');
+    }
+
+    // Render dialog listening question (Questions 1 to 9)
+    function renderDialogQuestion(q) {
+      const selected = state.answers[q.id];
+      const isSubmitted = state.examSubmitted;
+      const isCorrect = isSubmitted && selected === q.correctAnswer;
+
+      let statusBadge = '';
+      if (isSubmitted) {
+        if (isCorrect) {
+          statusBadge = `<span class="inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-700 border border-emerald-200"><i class="fa-solid fa-check"></i> 正确 (+1.0分)</span>`;
+        } else {
+          statusBadge = `<span class="inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-full font-bold bg-rose-100 text-rose-700 border border-rose-200"><i class="fa-solid fa-xmark"></i> 错误 (正确: ${q.correctAnswer})</span>`;
+        }
+      }
+
+      return `
+        <div class="bg-white rounded-2xl border ${isSubmitted ? (isCorrect ? 'border-emerald-300 shadow-emerald-50' : 'border-rose-300 shadow-rose-50') : 'border-slate-200'} p-5 shadow-sm transition-all">
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div class="flex items-center gap-2.5">
+              <span class="w-8 h-8 rounded-lg bg-rose-50 text-rose-800 font-bold flex items-center justify-center text-sm border border-rose-200">${q.id}</span>
+              <div>
+                <h4 class="font-bold text-slate-900">${q.instruction}</h4>
+                <p class="text-xs text-slate-500">${q.instructionZh} [分值: ${q.weight.toFixed(1)} 分]</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              ${statusBadge}
+              <button id="btn-play-${q.id}" onclick="playQuestionAudio(${q.id})" class="px-3.5 py-1.5 text-xs font-semibold rounded-xl border border-rose-200 text-rose-700 bg-rose-50 hover:bg-rose-100 active:scale-95 transition-all flex items-center gap-2">
+                <i class="fa-solid fa-play text-rose-600"></i>
+                <span>播放录音 (听两遍)</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Question Prompt Display -->
+          <div class="mb-4 p-3 rounded-xl bg-slate-50 border border-slate-200/70">
+            <div class="flex items-center justify-between">
+              <div>
+                ${state.showPinyin ? `<div class="pinyin-font text-xs font-medium text-rose-700">${q.questionPinyin}</div>` : ''}
+                ${state.showHanzi ? `<div class="text-base font-bold text-slate-900 mt-0.5">${q.questionText}</div>` : ''}
+                ${state.showEnglish ? `<div class="text-xs text-slate-500 italic mt-0.5">${q.questionEn}</div>` : ''}
+              </div>
+              <button onclick="speakText('${q.questionText}', '问题朗读')" class="p-1.5 text-slate-400 hover:text-rose-600 transition-colors" title="朗读此问句">
+                <i class="fa-solid fa-volume-high text-xs"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Options Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            ${q.options.map(opt => {
+              const isOptSelected = selected === opt.key;
+              let optStyle = "border-slate-200 hover:border-rose-300 hover:bg-rose-50/20";
+              let keyStyle = "bg-slate-100 text-slate-600 border-slate-200";
+
+              if (isOptSelected) {
+                optStyle = "border-rose-500 bg-rose-50/60 ring-2 ring-rose-400";
+                keyStyle = "bg-rose-600 text-white border-rose-600";
+              }
+
+              if (isSubmitted) {
+                if (opt.key === q.correctAnswer) {
+                  optStyle = "border-emerald-500 bg-emerald-50 ring-2 ring-emerald-500";
+                  keyStyle = "bg-emerald-600 text-white border-emerald-600";
+                } else if (isOptSelected && !isCorrect) {
+                  optStyle = "border-rose-500 bg-rose-50 ring-2 ring-rose-500";
+                  keyStyle = "bg-rose-600 text-white border-rose-600";
+                }
+              }
+
+              return `
+                <div onclick="selectOption(${q.id}, '${opt.key}')" class="cursor-pointer relative p-3 rounded-xl border ${optStyle} transition-all duration-150 flex flex-col justify-between group">
+                  <div class="flex items-start justify-between">
+                    <span class="w-6 h-6 rounded-md flex items-center justify-center font-bold text-xs border ${keyStyle}">
+                      ${opt.key}
+                    </span>
+                    <button onclick="event.stopPropagation(); speakText('${opt.hanzi}', '朗读选项 ${opt.key}')" class="text-slate-400 hover:text-rose-600 p-1 transition-colors" title="朗读此选项">
+                      <i class="fa-solid fa-volume-high text-xs"></i>
+                    </button>
+                  </div>
+
+                  <div class="mt-2 text-center py-1">
+                    ${state.showPinyin ? `<div class="pinyin-font text-xs font-medium text-rose-700 tracking-wide">${opt.pinyin}</div>` : ''}
+                    ${state.showHanzi ? `<div class="text-base font-bold text-slate-900 tracking-wider my-0.5">${opt.hanzi}</div>` : ''}
+                    ${state.showEnglish ? `<div class="text-xs text-slate-500 italic mt-0.5">${opt.english}</div>` : ''}
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+
+          <!-- Transcript & Explanation accordion -->
+          <div class="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-sm">
+            <span class="text-slate-400"><i class="fa-solid fa-comments mr-1"></i>录音包含对话原声与问句（两遍）</span>
+            <button onclick="toggleDetails('details-${q.id}')" class="text-rose-600 hover:text-rose-700 font-medium transition-colors flex items-center gap-1">
+              <span>听力脚本与解析</span> <i class="fa-solid fa-chevron-down text-xs"></i>
+            </button>
+          </div>
+
+          <!-- Transcript & explanation text matched to question font size (text-base) -->
+          <div id="details-${q.id}" class="hidden mt-3 p-4 bg-slate-50/90 rounded-xl border border-slate-200 text-base space-y-3">
+            <div class="font-bold text-slate-800 text-base flex items-center gap-2">
+              <i class="fa-solid fa-file-lines text-rose-500"></i> 对话听力原文 (Transcript):
+            </div>
+            <div class="space-y-3 pl-3 border-l-2 border-rose-400 bg-white p-3.5 rounded-r-lg border border-l-0 border-slate-200/80 shadow-xs">
+              ${q.dialogLines.map(line => `
+                <div class="flex items-start justify-between gap-3 pb-2.5 border-b border-slate-100 last:border-b-0 last:pb-0">
+                  <div class="text-base">
+                    <span class="font-bold text-rose-900">${line.role}:</span>
+                    <span class="font-semibold text-slate-900 ml-1 text-base">${line.text}</span>
+                    <div class="pinyin-font text-slate-600 text-sm mt-0.5">${line.pinyin}</div>
+                    <div class="text-slate-500 text-sm italic">${line.en}</div>
+                  </div>
+                  <button onclick="speakText('${line.text}', '${line.role} 朗读')" class="text-rose-600 hover:text-rose-700 p-1.5 shrink-0 hover:bg-rose-50 rounded transition-colors" title="朗读单句">
+                    <i class="fa-solid fa-volume-high text-sm"></i>
+                  </button>
+                </div>
+              `).join('')}
+            </div>
+            <div class="text-base text-slate-800 pt-2 border-t border-slate-200/80 leading-relaxed">
+              <span class="font-bold text-slate-900">【题目解析】</span>${q.explanation}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Render Question 10 (Oral Response in full sentences)
+    function renderOpenSpokenQuestion(q) {
+      return `
+        <div class="bg-white rounded-2xl border border-blue-200 p-5 shadow-sm space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-2.5">
+              <span class="w-8 h-8 rounded-lg bg-blue-100 text-blue-900 font-bold flex items-center justify-center text-sm border border-blue-200">${q.id}</span>
+              <div>
+                <h4 class="font-bold text-slate-900">${q.instruction}</h4>
+                <p class="text-xs text-slate-500">${q.instructionZh} [分值: ${q.weight.toFixed(1)} 分 • 口语表达]</p>
+              </div>
+            </div>
+
+            <button onclick="playQuestionAudio(${q.id})" class="px-3.5 py-1.5 text-xs font-semibold rounded-xl border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 transition-all flex items-center gap-1.5">
+              <i class="fa-solid fa-volume-high text-blue-600"></i>
+              <span>朗读三道口语试题</span>
+            </button>
+          </div>
+
+          <div class="space-y-4 pt-1">
+            ${q.subQuestions.map(sq => `
+              <div class="p-4 rounded-xl bg-blue-50/50 border border-blue-100 space-y-3">
+                <div class="flex items-start justify-between gap-2">
+                  <div>
+                    <div class="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-800 mb-1">
+                      问题 ${sq.num}
+                    </div>
+                    ${state.showPinyin ? `<div class="pinyin-font text-xs text-blue-800">${sq.questionPinyin}</div>` : ''}
+                    ${state.showHanzi ? `<div class="text-base font-bold text-slate-900 mt-0.5">${sq.questionHanzi}</div>` : ''}
+                    ${state.showEnglish ? `<div class="text-xs text-slate-500 italic mt-0.5">${sq.questionEn}</div>` : ''}
+                  </div>
+                  <button onclick="speakText('${sq.questionHanzi}', '朗读问题 ${sq.num}')" class="p-2 text-blue-600 hover:bg-blue-100/60 rounded-lg transition-colors shrink-0" title="朗读该题问题">
+                    <i class="fa-solid fa-volume-high text-sm"></i>
+                  </button>
+                </div>
+
+                <!-- Reference model answers -->
+                <div class="space-y-2 pt-2 border-t border-blue-200/60">
+                  <div class="text-xs font-bold text-slate-600"><i class="fa-solid fa-comment-dots text-blue-500 mr-1"></i>参考应答范例 (全句回答):</div>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    ${sq.sampleAnswers.map((ans, idx) => `
+                      <div class="bg-white p-3 rounded-lg border border-blue-100 shadow-xs flex items-center justify-between gap-2">
+                        <div>
+                          ${state.showPinyin ? `<div class="pinyin-font text-xs text-blue-800">${ans.pinyin}</div>` : ''}
+                          ${state.showHanzi ? `<div class="text-sm font-bold text-slate-900">${ans.hanzi}</div>` : ''}
+                          ${state.showEnglish ? `<div class="text-[11px] text-slate-500 italic">${ans.en}</div>` : ''}
+                        </div>
+                        <button onclick="speakText('${ans.hanzi}', '范例朗读')" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors shrink-0" title="试听发音">
+                          <i class="fa-solid fa-volume-high text-xs"></i>
+                        </button>
+                      </div>
+                    `).join('')}
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+
+          <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-sm">
+            <span class="text-slate-400"><i class="fa-solid fa-lightbulb mr-1"></i>自主口头表达题（要求使用完整句子回答）</span>
+            <button onclick="toggleDetails('details-${q.id}')" class="text-blue-700 hover:text-blue-800 font-medium transition-colors flex items-center gap-1">
+              <span>查看答题要求与采分说明</span> <i class="fa-solid fa-chevron-down text-xs"></i>
+            </button>
+          </div>
+
+          <div id="details-${q.id}" class="hidden p-4 bg-slate-50/90 rounded-xl border border-slate-200 text-base space-y-2">
+            <div class="font-bold text-slate-900 text-base flex items-center gap-2">
+              <i class="fa-solid fa-circle-check text-emerald-600"></i> 【题目解析与采分标准】
+            </div>
+            <div class="text-slate-800 text-base leading-relaxed">
+              ${q.explanation}
+              <ul class="list-disc pl-5 mt-2 space-y-1 text-slate-700 text-sm">
+                <li>第一小题应答关键：需用完整的“主语 + 时间 + 睡觉”句式，如“我通常晚上十点睡觉”，切忌仅回答单独时间词。</li>
+                <li>第二小题应答关键：运用“……通常谁做饭”结构，如“我们家通常妈妈做饭”或“爸爸做饭”。</li>
+                <li>第三小题应答关键：使用时间从句“起床以后，我会……”并搭配日常动作词汇（刷牙、洗脸、吃早饭、穿衣服等）。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    window.onload = function() {
+      initSpeechEngine();
+      updateToggleButtons();
+      renderAllQuestions();
+    };
+  </script>
+</body>
+</html>
